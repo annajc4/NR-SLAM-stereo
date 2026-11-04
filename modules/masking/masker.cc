@@ -22,12 +22,14 @@
 #include "bright_filter.h"
 #include "predefined_filter.h"
 
+
 #include "absl/log/log.h"
 
 #include <iostream>
 #include <fstream>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <sstream>
 
 void Masker::loadFromTxt(std::string path){
     LOG(INFO) << "Loading filters: " << path;

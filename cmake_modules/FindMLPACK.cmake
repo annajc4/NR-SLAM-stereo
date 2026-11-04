@@ -35,13 +35,13 @@ find_path(MLPACK_INCLUDE_DIR
 	PATHS "$ENV{ProgramFiles}/mlpack"
 )
 
-find_package_handle_standard_args(MLPACK
-	REQUIRED_VARS MLPACK_LIBRARY MLPACK_INCLUDE_DIR
-)
+find_package_handle_standard_args(MLPACK REQUIRED_VARS MLPACK_INCLUDE_DIR)
 
 if(MLPACK_FOUND)
 	set(MLPACK_INCLUDE_DIRS ${MLPACK_INCLUDE_DIR})
-	set(MLPACK_LIBRARIES ${MLPACK_LIBRARY})
+	if(MLPACK_LIBRARY)
+		set(MLPACK_LIBRARIES ${MLPACK_LIBRARY})
+	endif()
 endif()
 
 # Hide internal variables

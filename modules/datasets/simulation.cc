@@ -21,6 +21,9 @@
 
 #include <sys/stat.h>
 
+#include <fstream>
+#include <sstream>
+
 #include "absl/log/log.h"
 #include <boost/filesystem.hpp>
 #include <boost/lambda/bind.hpp>

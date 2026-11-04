@@ -149,9 +149,14 @@ target_link_libraries(${LIBRARY_NAME}
         ${Pangolin_LIBRARIES}
         ${MLPACK_LIBRARIES}
         armadillo
-        ${CMAKE_SOURCE_DIR}/third_party/g2o/lib/libg2o_core.so
-        ${CMAKE_SOURCE_DIR}/third_party/g2o/lib/libg2o_stuff.so
-        ${CMAKE_SOURCE_DIR}/third_party/g2o/lib/libg2o_types_sba.so
+        core
+        stuff
+        types_sba
         )
 
-target_include_directories(NR-SLAM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(NR-SLAM PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/third_party/Sophus
+        ${CMAKE_SOURCE_DIR}/third_party/g2o
+        ${Pangolin_INCLUDE_DIRS}
+        ${MLPACK_INCLUDE_DIRS})

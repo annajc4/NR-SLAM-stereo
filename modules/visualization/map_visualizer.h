@@ -46,10 +46,12 @@ public:
 
     void SetFinish();
 
-private:
+    void InitializePangolin();
     void RenderVisualization();
 
-    void InitializePangolin();
+
+
+private:
 
     void ResetVisualization();
 

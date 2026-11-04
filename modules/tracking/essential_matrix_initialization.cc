@@ -23,6 +23,9 @@
 
 #include "absl/log/log.h"
 
+#include <algorithm>
+#include <random>
+
 using namespace std;
 
 EssentialMatrixInitialization::EssentialMatrixInitialization(Options& options,
@@ -110,6 +113,7 @@ Eigen::Matrix3f EssentialMatrixInitialization::FindEssentialWithRANSAC(const int
     Eigen::Matrix<float,3,3> best_E;
 
     srand(4);
+    std::mt19937 rng(4);
 
     // Cluster data for random selection.
     const int n_clusters = options_.min_sample_set_size;
@@ -139,7 +143,7 @@ Eigen::Matrix3f EssentialMatrixInitialization::FindEssentialWithRANSAC(const int
         // Get minimum sample set of data.
         Eigen::Matrix<float,8,3> reference_rays_sample, current_rays_sample;
         for(int idx = 0; idx < n_clusters; idx++){
-            random_shuffle(clusters[idx].begin(), clusters[idx].end());
+            std::shuffle(clusters[idx].begin(), clusters[idx].end(), rng);
             int feature_idx = clusters[idx][0];
 
             reference_rays_sample.block<1, 3>(idx, 0) = reference_rays_.block(feature_idx, 0, 1, 3);

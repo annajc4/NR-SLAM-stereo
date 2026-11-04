@@ -65,7 +65,12 @@ System::System(const string settings_file_path) {
 
     map_visualizer_ = make_unique<MapVisualizer>(map_visualizer_options, map_);
 
-    map_visualizer_thread_ = make_unique<thread>(&MapVisualizer::Run, map_visualizer_.get());
+    #ifdef __APPLE__
+        map_visualizer_->InitializePangolin();
+    #else
+        map_visualizer_thread_ = make_unique<thread>(&MapVisualizer::Run, map_visualizer_.get());
+    #endif
+
 
     //Initialize image visualizer.
     ImageVisualizer::Options image_visualizer_options;
@@ -107,7 +112,7 @@ System::~System() {
     map_visualizer_->SetFinish();
 
     // Wait until is done
-    map_visualizer_thread_->join();
+    if (map_visualizer_thread_) map_visualizer_thread_->join();
 }
 
 void System::TrackImage(const cv::Mat &im) {
@@ -129,6 +134,9 @@ void System::TrackImage(const cv::Mat &im) {
 
     // Draw images.
     image_visualizer_->UpdateWindows();
+    #ifdef __APPLE__
+        map_visualizer_->RenderVisualization();
+    #endif
 }
 
 void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_right) {
@@ -157,6 +165,9 @@ void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_righ
 
     // Draw images.
     image_visualizer_->UpdateWindows();
+    #ifdef __APPLE__
+        map_visualizer_->RenderVisualization();
+    #endif
 }
 
 void System::TrackImageWithDepth(const cv::Mat &im_left, const cv::Mat &im_depth) {

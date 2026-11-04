@@ -38,7 +38,7 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES [[Clang]])
   # In both cases, the viable strategy is to pass all arguments at once, allowing
   # the compiler to dispatch arch-specific arguments to a designated backend.
   set(ABSL_RANDOM_RANDEN_COPTS "")
-  foreach(_arch IN ITEMS "x86_64" "arm64")
+  foreach(_arch IN ITEMS "arm64")
     string(TOUPPER "${_arch}" _arch_uppercase)
     string(REPLACE "X86_64" "X64" _arch_uppercase ${_arch_uppercase})
     foreach(_flag IN LISTS ABSL_RANDOM_HWAES_${_arch_uppercase}_FLAGS)

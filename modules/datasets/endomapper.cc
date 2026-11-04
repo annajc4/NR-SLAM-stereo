@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 
 #include <boost/filesystem.hpp>
+#include <fstream>
 
 #include "absl/log/log.h"
 
