@@ -70,8 +70,11 @@ image_visualizer_(image_visualizer), tracking_status_(NOT_INITIALIZED), time_pro
 }
 
 void Tracking::TrackImage(const cv::Mat &im, const absl::flat_hash_map<std::string, cv::Mat>& masks,
-                          const cv::Mat &additional_im, const cv::Mat& im_clahe) {
+                          const cv::Mat &additional_im, const cv::Mat& im_clahe, const double timestamp) {
     map_->SetAllMappointsToNonActive();
+
+    previous_timestamp_ = timestamp_;
+    timestamp_ = timestamp;
 
     if (map_->IsEmpty()) {
         // If map is not initialized, perform map initialization.

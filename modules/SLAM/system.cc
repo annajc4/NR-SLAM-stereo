@@ -140,7 +140,7 @@ void System::TrackImage(const cv::Mat &im) {
     #endif
 }
 
-void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_right, const cv::Mat &mask) {
+void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_right, const cv::Mat &mask, const double timestamp) {
     // Preprocess images.
     cv::Mat im_gray_left, im_gray_right;
     cv::Mat processed_image_left = ImageProcessing(im_left, im_gray_left);
@@ -157,7 +157,8 @@ void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_righ
 
 
     // Perform tracking.
-    tracker_->TrackImage(im_gray_left, masks, im_gray_right, processed_image_left);
+    tracker_->TrackImage(im_gray_left, masks, im_gray_right, processed_image_left, timestamp);
+
 
     // Perform mapping.
     mapper_->DoMapping();

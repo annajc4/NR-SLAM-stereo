@@ -49,7 +49,10 @@ int main(int argc, char **argv) {
         auto mask = dataset.GetMask(idx);
         CHECK_OK(mask);
 
-        SLAM.TrackImageWithStereo(*im_left, *im_right, *mask);
+        auto timestamp = dataset.GetTimestamp(idx);
+        CHECK_OK(timestamp);
+
+        SLAM.TrackImageWithStereo(*im_left, *im_right, *mask, *timestamp);
         auto pose = SLAM.GetCameraPose();
         if (pose.ok()) {
             Eigen::Vector3f t = pose->translation();

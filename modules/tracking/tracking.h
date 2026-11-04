@@ -63,7 +63,9 @@ public:
              TimeProfiler* time_profiler);
 
     void TrackImage(const cv::Mat& im, const absl::flat_hash_map<std::string, cv::Mat>& masks,
-                    const cv::Mat& additional_im = cv::Mat(), const cv::Mat& im_clahe = cv::Mat());
+                    const cv::Mat& additional_im = cv::Mat(), const cv::Mat& im_clahe = cv::Mat(),
+                    const double timestamp = 0);
+
 
     TrackingStatus GetTrackingStatus() const;
 
@@ -125,7 +127,6 @@ private:
 
     absl::flat_hash_set<int> tracks_with_3d_;
 
-
     std::unique_ptr<MonocularMapInitializer> monocular_map_initializer_;
 
     TrackingStatus tracking_status_;
@@ -133,6 +134,9 @@ private:
     Sophus::SE3f previous_camera_transform_world_;
 
     TimeProfiler* time_profiler_;
+
+    double timestamp_ = 0;
+    double previous_timestamp_ = 0;
 };
 
 
