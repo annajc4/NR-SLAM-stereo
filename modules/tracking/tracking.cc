@@ -318,9 +318,28 @@ absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, c
 }
 
 void Tracking::DataAssociation(const cv::Mat &im, const cv::Mat &mask) {
+    vector<cv::Point2f> previous_points;
+    cv::KeyPoint::convert(current_frame_->Keypoints(), previous_points);
     klt_tracker_.Track(im, current_frame_->Keypoints(), current_frame_->LandmarkStatuses(),
                        true, options_.klt_min_SSIM, mask);
+
+    static cv::Mat previous_image;
+    if (!previous_image.empty() && !previous_points.empty()) {
+        vector<cv::Point2f> points, back;
+        cv::KeyPoint::convert(current_frame_->Keypoints(), points);
+
+        vector<uchar> found;
+        cv::calcOpticalFlowPyrLK(im, previous_image, points, back, found, cv::noArray());
+        for (int idx = 0; idx < points.size(); idx++) {
+            if (IsUsable(current_frame_->LandmarkStatuses()[idx]) &&
+                (!found[idx] || cv::norm(back[idx] - previous_points[idx]) > 0.5)) {
+                current_frame_->LandmarkStatuses()[idx] = BAD;
+            }
+        }
+    }
+    previous_image = im.clone();
 }
+
 
 void Tracking::CameraPoseEstimation() {
     // Apply motion model to get a first seed of the current camera pose.
