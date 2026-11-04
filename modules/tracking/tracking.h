@@ -77,7 +77,9 @@ private:
     void StereoMapInitialization(const cv::Mat& im_left, const cv::Mat& im_right,
                                  const cv::Mat& mask, const cv::Mat& im_clahe);
 
-    absl::flat_hash_set<ID> TrackCameraAndDeformation(const cv::Mat& im, const cv::Mat& mask);
+    absl::flat_hash_set<ID> TrackCameraAndDeformation(const cv::Mat& im, const cv::Mat& mask, const cv::Mat& im_right);
+
+    void CreateStereoMapPoints(const cv::Mat& im_left, const cv::Mat& im_right);
 
     void DataAssociation(const cv::Mat& im, const cv::Mat& mask);
 
@@ -120,6 +122,9 @@ private:
     std::shared_ptr<ImageVisualizer> image_visualizer_;
 
     int n_images_from_last_keyframe_ = 0;
+
+    absl::flat_hash_set<int> tracks_with_3d_;
+
 
     std::unique_ptr<MonocularMapInitializer> monocular_map_initializer_;
 

@@ -96,7 +96,7 @@ void Tracking::TrackImage(const cv::Mat &im, const absl::flat_hash_map<std::stri
         // Otherwise perform normal tracking.
         // Depending on the type of sequence, the mask type used can be different.
         // absl::flat_hash_set<ID> lost_mappoint_ids = TrackCameraAndDeformation(im, masks.at("BorderFilter"));
-        absl::flat_hash_set<ID> lost_mappoint_ids = TrackCameraAndDeformation(im, masks.at("Global"));
+        absl::flat_hash_set<ID> lost_mappoint_ids = TrackCameraAndDeformation(im, masks.at("Global"), additional_im);
 
         // Point reuse.
         PointReuse(im, cv::Mat(), lost_mappoint_ids);
@@ -305,7 +305,7 @@ void Tracking::StereoMapInitialization(const cv::Mat& im_left, const cv::Mat& im
     tracking_status_ = TRACKING;
 }
 
-absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, const cv::Mat& mask) {
+absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, const cv::Mat& mask, const cv::Mat& im_right) {
     // Perform data association.
     DataAssociation(im, mask);
 
@@ -314,8 +314,77 @@ absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, c
 
     // Deformation + camera pose estimation.
     auto lost_ids = CameraPoseAndDeformationEstimation();
+
+    // Stereo: give new tracks 3D points immediately 
+    if (!im_right.empty()) {
+        CreateStereoMapPoints(im, im_right);
+    }
+
     return lost_ids;
 }
+
+
+void Tracking::CreateStereoMapPoints(const cv::Mat& im_left, const cv::Mat& im_right) {
+    auto& keypoints = current_frame_->Keypoints();
+    auto stereo = stereo_matcher_->ComputeStereo3D(keypoints, im_left, im_right);
+    const auto camera_to_world = current_frame_->CameraTransformationWorld().inverse();
+
+    for (const auto& [idx, landmark_id] : current_frame_->IndexToMapPointId()) {
+        tracks_with_3d_.insert(keypoints[idx].class_id);
+    }
+
+    vector<ID> new_landmark_ids;
+    vector<cv::Point2f> new_points;
+
+    for (int idx = 0; idx < keypoints.size(); idx++) {
+        if (current_frame_->LandmarkStatuses()[idx] != TRACKED || !stereo[idx].ok()) {
+            continue;
+        }
+
+        float depth = stereo[idx]->z();
+        if (depth < 20.f || depth > 200.f || tracks_with_3d_.contains(keypoints[idx].class_id)) {
+            continue;
+        }
+
+        auto nearby_points = map_->GetTemporalBuffer()->GetClosestMapPointsToFeature(
+            keypoints[idx].class_id, 10, 20, 500);
+
+        bool too_close_to_new = any_of(new_points.begin(), new_points.end(),
+            [&](const cv::Point2f& point) {
+                return cv::norm(point - keypoints[idx].pt) < 20;
+            });
+
+        if (nearby_points.empty() || too_close_to_new) {
+            continue;
+        }
+
+        new_points.push_back(keypoints[idx].pt);
+
+        const Eigen::Vector3f position = camera_to_world * (*stereo[idx]);
+        auto landmark = map_->CreateAndInsertMapPoint(position, keypoints[idx].class_id);
+
+        current_frame_->AddGeometryToKeypoint(idx, position, landmark->GetId());
+        current_frame_->LandmarkStatuses()[idx] = TRACKED_WITH_3D;
+        new_landmark_ids.push_back(landmark->GetId());
+    }
+
+    auto landmark_ids = current_frame_->GetMapPointsIdsWithStatus({TRACKED_WITH_3D, JUST_TRIANGULATED});
+
+    for (auto landmark_id : new_landmark_ids) {
+        for (auto other_landmark_id : landmark_ids) {
+            if (other_landmark_id == landmark_id) {
+                continue;
+            }
+
+            Eigen::Vector3f relative_position = *current_frame_->LandmarkPosition(other_landmark_id) -
+                                                *current_frame_->LandmarkPosition(landmark_id);
+
+            map_->GetRegularizationGraph()->AddEdge(landmark_id, other_landmark_id, relative_position);
+        }
+    }
+}
+
+
 
 void Tracking::DataAssociation(const cv::Mat &im, const cv::Mat &mask) {
     vector<cv::Point2f> previous_points;
