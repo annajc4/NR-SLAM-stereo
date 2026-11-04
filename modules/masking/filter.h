@@ -29,6 +29,8 @@
 class Filter {
 public:
     Filter(){};
+    virtual ~Filter() = default;
+
 
     /*
      * Virtual method for generating the mask

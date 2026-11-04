@@ -125,7 +125,7 @@ void LucasKanadeTracker::SetReferenceImage(const Mat &refIm, const vector<KeyPoi
                     int mx = (ipoint.x+x) * scaleFactor;
                     int my = (ipoint.y+y) * scaleFactor;
 
-                    if(!mask.empty() && mask.at<uchar>(my,mx) == 0){
+                    if(!mask.empty() && (my < 0 || mx < 0 || my >= mask.rows || mx >= mask.cols || mask.at<uchar>(my,mx) == 0)){
                         valid = false;
                         break;
                     }
@@ -514,7 +514,7 @@ int LucasKanadeTracker::Track(const Mat &newIm, std::vector<KeyPoint> &nextPts,
                     int mx = (inextPt.x+x);
                     int my = (inextPt.y+y);
 
-                    if(!mask.empty() && mask.at<uchar>(my,mx) == 0){
+                    if(!mask.empty() && (my < 0 || mx < 0 || my >= mask.rows || mx >= mask.cols || mask.at<uchar>(my,mx) == 0)){
                         Jvalid.at<uchar>(y,x) = 0;
                     }
                     else{
