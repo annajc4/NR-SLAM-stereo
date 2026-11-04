@@ -148,7 +148,8 @@ private:
     //for the amp fits per liver over 2 breathing windows
     void UpdateLiverHistory();
     absl::flat_hash_map<ID, std::deque<std::pair<double, Eigen::Vector3f>>> liver_history_;
-
+    void FitLiverAmplitudes();
+    absl::flat_hash_map<ID, Eigen::Vector3f> liver_amplitudes_;
 };
 
 

@@ -326,6 +326,7 @@ absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, c
     if (!im_right.empty()) {
         CreateStereoMapPoints();
         UpdateLiverHistory();
+        FitLiverAmplitudes();
     }
 
     return lost_ids;
@@ -668,5 +669,52 @@ void Tracking::UpdateLiverHistory() {
         }
     }
 }
+
+void Tracking::FitLiverAmplitudes() {
+    const double oldest = timestamp_ - 2 * 60 / options_.breathing_rate;
+
+    absl::flat_hash_map<ID, Eigen::Vector3f> good_fits; 
+    int n_fitted = 0;
+    for (const auto& [id, history] : liver_history_) {
+        if (history.front().first > oldest + 0.1 || history.back().first < timestamp_) {
+            continue;
+        }
+
+        // Least squares: position = rest + a * s(t).
+        float s_mean = 0;
+        Eigen::Vector3f p_mean = Eigen::Vector3f::Zero();
+        for (const auto& [t, p] : history) {
+            s_mean += BreathingSignal(t);
+            p_mean += p;
+        }
+        s_mean /= history.size();
+        p_mean /= history.size();
+
+        float s_var = 0, p_var = 0;
+        Eigen::Vector3f cov = Eigen::Vector3f::Zero();
+        for (const auto& [t, p] : history) {
+            const float ds = BreathingSignal(t) - s_mean;
+            s_var += ds * ds;
+            p_var += (p - p_mean).squaredNorm();
+            cov += ds * (p - p_mean);
+        }
+        const Eigen::Vector3f a = cov / s_var;
+        const float rms = sqrt(max(0.f, p_var - cov.squaredNorm() / s_var) / history.size());   // mm
+
+        n_fitted++;
+        if (rms < 1.5f) {
+            good_fits[id] = a;
+        }
+    }
+
+    if (n_fitted < 5 || 2 * good_fits.size() <= n_fitted) {
+        return;
+    }
+    const Sophus::SO3f world_rotation_camera = current_frame_->CameraTransformationWorld().inverse().so3();
+    for (const auto& [id, a] : good_fits) {
+        liver_amplitudes_[id] = world_rotation_camera * a;
+    }
+}
+
 
 
