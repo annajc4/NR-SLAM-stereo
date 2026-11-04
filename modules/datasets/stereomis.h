@@ -15,11 +15,15 @@ public:
     absl::StatusOr<cv::Mat> GetImage(const int n);
 
     absl::StatusOr<cv::Mat> GetRightImage(const int n);
+    
+    absl::StatusOr<cv::Mat> GetMask(const int n);
 
 private:
     absl::StatusOr<cv::Mat> ReadImage(const int n, const char side);
 
     std::string frames_path_;
+
+    std::string masks_path_;
 };
 
 #endif //NRSLAM_STEREOMIS_H

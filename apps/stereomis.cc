@@ -44,7 +44,11 @@ int main(int argc, char **argv) {
         auto im_right = dataset.GetRightImage(idx);
         CHECK_OK(im_right);
 
-        SLAM.TrackImageWithStereo(*im_left, *im_right);
+        auto mask = dataset.GetMask(idx);
+        CHECK_OK(mask);
+
+        SLAM.TrackImageWithStereo(*im_left, *im_right, *mask);
+
     }
 
     return 0;
