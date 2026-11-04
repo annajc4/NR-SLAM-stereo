@@ -76,12 +76,19 @@ void Tracking::TrackImage(const cv::Mat &im, const absl::flat_hash_map<std::stri
     if (map_->IsEmpty()) {
         // If map is not initialized, perform map initialization.
 
+        if (!additional_im.empty()){
+            StereoMapInitialization(im, additional_im, masks.at("Global"), im_clahe);
+        } else {
+            MonocularMapInitialization(im, masks.at("Global"), im_clahe);
+        }
+        ////////////////////////////////////////old nr-slam code////////
         // For stereo experiment purposes.
         // StereoMapInitialization(im, additional_im, masks.at("Global"), im_clahe);
 
         // Depending on the type of sequence, the mask type used can be different.
-        MonocularMapInitialization(im, masks.at("Global"), im_clahe);
+        //MonocularMapInitialization(im, masks.at("Global"), im_clahe);
         // MonocularMapInitialization(im, masks.at("PredefinedFilter"), im_clahe);
+        ////////////////////////////////////////old nr-slam code////////
     } else {
         // Update points triangulated by the mapping in the last frame.
         UpdateTriangulatedPoints();
@@ -223,11 +230,19 @@ void Tracking::StereoMapInitialization(const cv::Mat& im_left, const cv::Mat& im
     std::vector<Eigen::Vector3f> filtered_landmarks;
     std::vector<cv::KeyPoint> filtered_keypoints;
 
-    auto stereo_matcher = StereoPatternMatching(calibration_, 3886.37);
+    //old nrslam w hardcoded bf
+    //auto stereo_matcher = StereoPatternMatching(calibration_, 3886.37);
+    // for (int idx = 0; idx < keypoints.size(); idx++) {
+        // auto landmark = stereo_matcher.computeStereo3D(keypoints[idx], im_left, im_right);
+
+    auto stereo_landmarks = stereo_matcher_->ComputeStereo3D(keypoints, im_left, im_right);
     for (int idx = 0; idx < keypoints.size(); idx++) {
-        auto landmark = stereo_matcher.computeStereo3D(keypoints[idx], im_left, im_right);
+        auto landmark = stereo_landmarks[idx];
+
         if (landmark.ok() &&
-            (*landmark).z() > 35.5f && (*landmark).z() < 70.5f) {
+            //(*landmark).z() > 35.5f && (*landmark).z() < 70.5f) {
+            //bigger depth window for StereoMIS
+            (*landmark).z() > 20.f && (*landmark).z() < 200.f) {
             filtered_landmarks.push_back(*landmark);
             filtered_keypoints.push_back(keypoints[idx]);
         }
@@ -246,7 +261,7 @@ void Tracking::StereoMapInitialization(const cv::Mat& im_left, const cv::Mat& im
 
     const int median_idx = depths.size() / 2;
     nth_element(depths.begin(), depths.begin() + median_idx, depths.end());
-    float median_depth = depths[median_depth];
+    float median_depth = depths[median_idx];
     const float scale = 1.f;
 
     current_frame_->MutableCameraTransformationWorld().translation() *= scale;
