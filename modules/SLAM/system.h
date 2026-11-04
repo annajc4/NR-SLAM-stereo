@@ -51,8 +51,7 @@ public:
     //  - Reconstruction evaluation
     // This is controlled by the settings passed to the system
     // TODO: implement stereo options
-    void TrackImageWithStereo(const cv::Mat& im_left, const cv::Mat& im_right, const cv::Mat& mask = cv::Mat(), const double timestamp = 0);
-
+    void TrackImageWithStereo(const cv::Mat& im_left, const cv::Mat& im_right, const cv::Mat& mask = cv::Mat(), const double timestamp = 0, const cv::Mat& liver_mask = cv::Mat());
 
     // Tracks the next image using a precomputed depth image.
     void TrackImageWithDepth(const cv::Mat& im_left, const cv::Mat& im_depth);

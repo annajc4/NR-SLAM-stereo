@@ -20,13 +20,15 @@ public:
 
     absl::StatusOr<double> GetTimestamp(const int idx);
 
-
+    absl::StatusOr<cv::Mat> GetLiverMask(const int idx);
 private:
     absl::StatusOr<cv::Mat> ReadImage(const int idx, const char side);
 
     std::string frames_path_;
 
     std::string masks_path_;
+
+    std::string liver_masks_path_;
 
     std::vector<double> times_;
 

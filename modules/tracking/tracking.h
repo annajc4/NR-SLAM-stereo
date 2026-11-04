@@ -140,6 +140,9 @@ private:
     double timestamp_ = 0;
     double previous_timestamp_ = 0;
     double BreathingSignal(const double time);
+
+    bool IsLiver(const cv::Point2f& point);
+    cv::Mat liver_mask_;
 };
 
 

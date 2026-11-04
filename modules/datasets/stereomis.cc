@@ -4,7 +4,8 @@
 using namespace std;
 
 StereoMIS::StereoMIS(const std::string& sequence_path) : frames_path_(sequence_path + "/video_frames/"),
-                                                         masks_path_(sequence_path + "/masks/") {
+                                                         masks_path_(sequence_path + "/masks/"), liver_masks_path_(sequence_path + "/liver_masks/")
+ {
     ifstream file(frames_path_ + "times.txt");
     double time;
     while (file >> time) {
@@ -37,6 +38,16 @@ absl::StatusOr<cv::Mat> StereoMIS::GetMask(const int idx) {
     }
     return mask;
 }
+
+absl::StatusOr<cv::Mat> StereoMIS::GetLiverMask(const int idx) {
+    string name = cv::format("%06dl.png", idx);
+    cv::Mat mask = cv::imread(liver_masks_path_ + name, cv::IMREAD_GRAYSCALE);
+    if (mask.empty()) {
+        return absl::NotFoundError("No liver mask " + liver_masks_path_ + name);
+    }
+    return mask;
+}
+
 
 absl::StatusOr<double> StereoMIS::GetTimestamp(const int idx) {
     if (idx < 1 || idx > times_.size()) {

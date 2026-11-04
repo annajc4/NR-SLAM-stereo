@@ -143,7 +143,7 @@ void System::TrackImage(const cv::Mat &im) {
     #endif
 }
 
-void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_right, const cv::Mat &mask, const double timestamp) {
+void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_right, const cv::Mat &mask, const double timestamp, const cv::Mat &liver_mask) {
     // Preprocess images.
     cv::Mat im_gray_left, im_gray_right;
     cv::Mat processed_image_left = ImageProcessing(im_left, im_gray_left);
@@ -156,6 +156,7 @@ void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_righ
     auto masks = masker_->GetAllMasks(im_gray_left);
     // tool mask, 0 = excluded
     if (!mask.empty()) masks["Global"] &= mask;   
+    if (!liver_mask.empty()) masks["Liver"] = liver_mask;
 
 
 

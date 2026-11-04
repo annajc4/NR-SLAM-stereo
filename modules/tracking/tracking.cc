@@ -75,6 +75,7 @@ void Tracking::TrackImage(const cv::Mat &im, const absl::flat_hash_map<std::stri
 
     previous_timestamp_ = timestamp_;
     timestamp_ = timestamp;
+    liver_mask_ = masks.contains("Liver") ? masks.at("Liver") : cv::Mat();
 
     if (map_->IsEmpty()) {
         // If map is not initialized, perform map initialization.
@@ -634,3 +635,10 @@ void Tracking::UpdateTriangulatedPoints() {
 double Tracking::BreathingSignal(const double time) {
     return -pow(cos(M_PI * options_.breathing_rate / 60 * time - options_.breathing_phase), 6);
 }
+
+bool Tracking::IsLiver(const cv::Point2f& point) {
+    const cv::Point pixel(cvRound(point.x), cvRound(point.y));
+    return !liver_mask_.empty() && cv::Rect(0, 0, liver_mask_.cols, liver_mask_.rows).contains(pixel) &&
+           liver_mask_.at<uchar>(pixel) > 0;
+}
+

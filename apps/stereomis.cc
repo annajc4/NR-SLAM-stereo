@@ -52,7 +52,9 @@ int main(int argc, char **argv) {
         auto timestamp = dataset.GetTimestamp(idx);
         CHECK_OK(timestamp);
 
-        SLAM.TrackImageWithStereo(*im_left, *im_right, *mask, *timestamp);
+        cv::Mat liver_mask = dataset.GetLiverMask(idx).value_or(cv::Mat());
+
+        SLAM.TrackImageWithStereo(*im_left, *im_right, *mask, *timestamp, liver_mask);
         auto pose = SLAM.GetCameraPose();
         if (pose.ok()) {
             Eigen::Vector3f t = pose->translation();
