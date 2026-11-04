@@ -16,6 +16,7 @@ set(HEADER_FILES
         ${root}/calibration/pin_hole.h
         ${root}/datasets/endomapper.h
         ${root}/datasets/hamlyn.h
+        ${root}/datasets/stereomis.h
         ${root}/datasets/simulation.h
         ${root}/features/feature.h
         ${root}/features/shi_tomasi.h
@@ -67,6 +68,7 @@ set(SOURCE_FILES
         ${root}/calibration/pin_hole.cc
         ${root}/datasets/endomapper.cc
         ${root}/datasets/hamlyn.cc
+        ${root}/datasets/stereomis.cc
         ${root}/datasets/simulation.cc
         ${root}/features/shi_tomasi.cc
         ${root}/map/frame.cc
