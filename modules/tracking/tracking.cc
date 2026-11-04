@@ -319,6 +319,8 @@ absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, c
     // Coarse camera pose estimation.
     CameraPoseEstimation();
 
+    auto breathing_predictions = BreathingPredictions();
+
     // Deformation + camera pose estimation.
     auto lost_ids = CameraPoseAndDeformationEstimation();
 
@@ -651,7 +653,7 @@ void Tracking::UpdateLiverHistory() {
     for (const auto& [idx, landmark_id] : current_frame_->IndexToMapPointId()) {
         if (current_frame_->LandmarkStatuses()[idx] == TRACKED_WITH_3D && stereo[idx].ok() &&
             IsLiver(keypoints[idx].pt)) {
-            liver_history_[landmark_id].push_back({timestamp_, *stereo[idx]});
+            liver_history_[landmark_id].push_back({timestamp_, *stereo[idx], current_frame_->LandmarkPositions()[idx]});
         }
     }
 
@@ -659,7 +661,7 @@ void Tracking::UpdateLiverHistory() {
     const double oldest = timestamp_ - 2 * 60 / options_.breathing_rate;
     for (auto it = liver_history_.begin(); it != liver_history_.end();) {
         auto& history = it->second;
-        while (!history.empty() && history.front().first < oldest) {
+        while (!history.empty() && history.front().time < oldest) {
             history.pop_front();
         }
         if (history.empty()) {
@@ -676,14 +678,14 @@ void Tracking::FitLiverAmplitudes() {
     absl::flat_hash_map<ID, Eigen::Vector3f> good_fits; 
     int n_fitted = 0;
     for (const auto& [id, history] : liver_history_) {
-        if (history.front().first > oldest + 0.1 || history.back().first < timestamp_) {
+        if (history.front().time > oldest + 0.1 || history.back().time < timestamp_) {
             continue;
         }
 
         // Least squares: position = rest + a * s(t).
         float s_mean = 0;
         Eigen::Vector3f p_mean = Eigen::Vector3f::Zero();
-        for (const auto& [t, p] : history) {
+        for (const auto& [t, p, world] : history) {
             s_mean += BreathingSignal(t);
             p_mean += p;
         }
@@ -692,7 +694,7 @@ void Tracking::FitLiverAmplitudes() {
 
         float s_var = 0, p_var = 0;
         Eigen::Vector3f cov = Eigen::Vector3f::Zero();
-        for (const auto& [t, p] : history) {
+        for (const auto& [t, p, world] : history) {
             const float ds = BreathingSignal(t) - s_mean;
             s_var += ds * ds;
             p_var += (p - p_mean).squaredNorm();
@@ -714,6 +716,31 @@ void Tracking::FitLiverAmplitudes() {
     for (const auto& [id, a] : good_fits) {
         liver_amplitudes_[id] = world_rotation_camera * a;
     }
+}
+
+absl::flat_hash_map<ID, Eigen::Vector3f> Tracking::BreathingPredictions() {
+    const double period = 60 / options_.breathing_rate;
+    auto& keypoints = current_frame_->Keypoints();
+
+    absl::flat_hash_map<ID, Eigen::Vector3f> predictions;
+    for (const auto& [idx, landmark_id] : current_frame_->IndexToMapPointId()) {
+        if (current_frame_->LandmarkStatuses()[idx] != TRACKED_WITH_3D || !IsLiver(keypoints[idx].pt) ||
+            !liver_amplitudes_.contains(landmark_id) || !liver_history_.contains(landmark_id)) {
+            continue;
+        }
+
+        // Use the oldest position from the last half-breath
+        for (const auto& reference : liver_history_.at(landmark_id)) {
+            if (reference.time >= timestamp_ - period / 2) {
+                if (reference.time <= timestamp_ - period / 4) { //only use if its at least a 1/4 breath old
+                    const float breathing = BreathingSignal(timestamp_) - BreathingSignal(reference.time);
+                    predictions[landmark_id] = reference.world + breathing * liver_amplitudes_.at(landmark_id);
+                }
+                break;
+            }
+        }
+    }
+    return predictions;
 }
 
 
