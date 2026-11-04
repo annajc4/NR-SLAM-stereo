@@ -19,6 +19,8 @@
 
 #include "stereo_lucas_kanade.h"
 #include "absl/log/check.h"
+#include <opencv2/calib3d.hpp>
+
 
 using namespace std;
 
@@ -41,23 +43,54 @@ StereoLucasKanade::ComputeStereo3D(const std::vector<cv::KeyPoint> &keypoints,
     klt_tracker_.SetReferenceImage(im_left, keypoints);
 
     vector<cv::KeyPoint> keypoints_right = keypoints;
+    static cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(4, 64, 5, 200, 800, 1, 0, 10, 100, 2,
+                                                                  cv::StereoSGBM::MODE_SGBM_3WAY);
+    cv::Mat sgbm_disparity;
+    sgbm->compute(im_left, im_right, sgbm_disparity);
+    for (auto& keypoint : keypoints_right) {
+        const int row = min(max(cvRound(keypoint.pt.y), 0), sgbm_disparity.rows - 1);
+        const int col = min(max(cvRound(keypoint.pt.x), 0), sgbm_disparity.cols - 1);
+        const short d = sgbm_disparity.at<short>(row, col);
+        if (d >= 64) {
+            keypoint.pt.x -= d / 16.f;
+        }
+    }
     vector<LandmarkStatus> landmark_statuses(keypoints.size(), TRACKED);
 
     klt_tracker_.Track(im_right, keypoints_right, landmark_statuses, true,
                        options_.klt_min_SSIM, cv::Mat());
+
+    vector<cv::Point2f> left_points, right_points, back;
+    cv::KeyPoint::convert(keypoints, left_points);
+    cv::KeyPoint::convert(keypoints_right, right_points);
+
+    vector<uchar> found;
+    if (!right_points.empty()) {
+        cv::calcOpticalFlowPyrLK(im_right, im_left, right_points, back, found, cv::noArray());
+    }
+
+    for (int idx = 0; idx < right_points.size(); idx++) {
+        if (landmark_statuses[idx] == TRACKED &&
+            (!found[idx] || cv::norm(back[idx] - left_points[idx]) > 0.5)) {
+            landmark_statuses[idx] = BAD;
+        }
+    }
 
     vector<absl::StatusOr<Eigen::Vector3f>> computed3D;
     for (int idx = 0; idx < keypoints.size(); idx++) {
         if (landmark_statuses[idx] == TRACKED) {
             float dif_in_rows = abs(keypoints[idx].pt.y - keypoints_right[idx].pt.y);
 
-            if(dif_in_rows > 2.0) {
+            if(dif_in_rows > 1.0) {
                 computed3D.push_back(absl::InternalError("Rows are different: " + to_string(dif_in_rows)));
             } else {
-                float disparity = (abs(keypoints[idx].pt.x - keypoints_right[idx].pt.x));
+                float disparity = keypoints[idx].pt.x - keypoints_right[idx].pt.x;
 
                 CHECK(!isnan(disparity) && !isinf(disparity));
-
+                if (disparity <= 0) {
+                    computed3D.push_back(absl::InternalError("disparity should be positive left-right"));
+                    continue;
+                }
                 Eigen::Vector3f landmark_position;
                 landmark_position.x() = baseline_ / disparity * (((float)keypoints[idx].pt.x - cx) / fx);
                 landmark_position.y() = baseline_ / disparity * (((float)keypoints[idx].pt.y - cy) / fy);
