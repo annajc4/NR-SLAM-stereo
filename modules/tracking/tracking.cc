@@ -325,6 +325,7 @@ absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, c
     // Stereo: give new tracks 3D points immediately 
     if (!im_right.empty()) {
         CreateStereoMapPoints();
+        UpdateLiverHistory();
     }
 
     return lost_ids;
@@ -333,7 +334,7 @@ absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, c
 
 void Tracking::CreateStereoMapPoints() {
     auto& keypoints = current_frame_->Keypoints();
-    auto stereo = current_frame_->GroundTruth();  
+    auto stereo = current_frame_->GroundTruth();  //NR-Slam's old name for the stereo bc thats how they eval'd hamlyn monocular
     const auto camera_to_world = current_frame_->CameraTransformationWorld().inverse();
 
     for (const auto& [idx, landmark_id] : current_frame_->IndexToMapPointId()) {
@@ -641,4 +642,31 @@ bool Tracking::IsLiver(const cv::Point2f& point) {
     return !liver_mask_.empty() && cv::Rect(0, 0, liver_mask_.cols, liver_mask_.rows).contains(pixel) &&
            liver_mask_.at<uchar>(pixel) > 0;
 }
+
+void Tracking::UpdateLiverHistory() {
+    auto& keypoints = current_frame_->Keypoints();
+    auto stereo = current_frame_->GroundTruth();
+
+    for (const auto& [idx, landmark_id] : current_frame_->IndexToMapPointId()) {
+        if (current_frame_->LandmarkStatuses()[idx] == TRACKED_WITH_3D && stereo[idx].ok() &&
+            IsLiver(keypoints[idx].pt)) {
+            liver_history_[landmark_id].push_back({timestamp_, *stereo[idx]});
+        }
+    }
+
+    //pop off more than 2 breaths back
+    const double oldest = timestamp_ - 2 * 60 / options_.breathing_rate;
+    for (auto it = liver_history_.begin(); it != liver_history_.end();) {
+        auto& history = it->second;
+        while (!history.empty() && history.front().first < oldest) {
+            history.pop_front();
+        }
+        if (history.empty()) {
+            liver_history_.erase(it++);
+        } else {
+            it++;
+        }
+    }
+}
+
 

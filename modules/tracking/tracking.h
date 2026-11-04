@@ -30,6 +30,7 @@
 #include "tracking/monocular_map_initializer.h"
 #include "utilities/time_profiler.h"
 #include "visualization/image_visualizer.h"
+#include <deque>
 
 #include "absl/container/flat_hash_set.h"
 
@@ -143,6 +144,11 @@ private:
 
     bool IsLiver(const cv::Point2f& point);
     cv::Mat liver_mask_;
+    
+    //for the amp fits per liver over 2 breathing windows
+    void UpdateLiverHistory();
+    absl::flat_hash_map<ID, std::deque<std::pair<double, Eigen::Vector3f>>> liver_history_;
+
 };
 
 
