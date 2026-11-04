@@ -35,11 +35,15 @@ videos = sorted(glob.glob(os.path.join(seq_folder, "*.mp4")))
 video_path = videos[0]
 video = cv2.VideoCapture(video_path)
 frame_num=0
+times = open(os.path.join(output_folder, "times.txt"), "w")
 while frame_num<last_frame:
     success, img_bgr = video.read()
     if not success:
         break
     frame_num+=1
+    
+    times.write(f"{video.get(cv2.CAP_PROP_POS_MSEC) / 1000}\n")
+
     if frame_num<first_frame:
         continue
     print("Processing frame: ", frame_num)
@@ -53,4 +57,5 @@ while frame_num<last_frame:
     cv2.imwrite(os.path.join(output_folder, f"{frame_num:06d}r.png"), right_rectified)
 
 video.release()
+times.close()
 print("Images saved")
