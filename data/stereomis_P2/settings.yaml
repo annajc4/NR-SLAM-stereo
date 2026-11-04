@@ -42,3 +42,6 @@ MapVisualizer.right_view: !!opencv-matrix
         -0.0521823,  -0.964826,   -0.25766,    3.69142,
         0.499126,    0.198275,    -0.84354,    -24.4947,
         0.0,   0.0,   0.0,   1.0 ]
+
+Breathing.rate: 18.13
+Breathing.phase: 0.16

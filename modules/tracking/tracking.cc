@@ -630,3 +630,7 @@ void Tracking::UpdateTriangulatedPoints() {
         current_frame_->LandmarkStatuses()[index] = TRACKED_WITH_3D;
     }
 }
+
+double Tracking::BreathingSignal(const double time) {
+    return -pow(cos(M_PI * options_.breathing_rate / 60 * time - options_.breathing_phase), 6);
+}

@@ -46,6 +46,8 @@ public:
         int images_to_insert_keyframe = 5;
 
         float radians_per_pixel;
+        float breathing_rate;
+        float breathing_phase;
     };
 
     enum TrackingStatus {
@@ -137,6 +139,7 @@ private:
 
     double timestamp_ = 0;
     double previous_timestamp_ = 0;
+    double BreathingSignal(const double time);
 };
 
 

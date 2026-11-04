@@ -48,6 +48,8 @@ public:
     //Getter methods
     std::shared_ptr<CameraModel> getCalibration();
     float getBf();
+    float getBreathingRate();
+    float getBreathingPhase();
 
     std::shared_ptr<Masker> getMasker();
 
@@ -70,6 +72,8 @@ private:
     //Camera parameters
     std::shared_ptr<CameraModel> calibration_;      //Geometric calibration with projection and unprojection functions
     float bf_;                                      //baseline times fx
+    float breathing_rate_;  //breaths per minute
+    float breathing_phase_; //radians
 
     std::shared_ptr<Masker> masker_;
 

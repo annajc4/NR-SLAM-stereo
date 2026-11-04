@@ -87,6 +87,9 @@ System::System(const string settings_file_path) {
     tracking_options.klt_min_eig_th = 0.0001;
     tracking_options.klt_min_SSIM = 0.7;
     tracking_options.radians_per_pixel = settings_->getRadPerPixel();
+    tracking_options.breathing_rate = settings_->getBreathingRate();
+    tracking_options.breathing_phase = settings_->getBreathingPhase();
+
 
     // Time profiler.
     time_profiler_ = make_unique<TimeProfiler>();

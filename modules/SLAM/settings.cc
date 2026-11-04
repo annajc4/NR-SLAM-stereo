@@ -122,6 +122,8 @@ Settings::Settings(const std::string& configFile) {
     }
 
     bf_ = fSettings["Stereo.bf"];
+    breathing_rate_ = fSettings["Breathing.rate"];
+    breathing_phase_ = fSettings["Breathing.phase"];
 
     // Camera drawing size.
     camera_size_ = (float) fSettings["Visualization.cameraSize"];
@@ -193,6 +195,15 @@ std::shared_ptr<CameraModel> Settings::getCalibration() {
 float Settings::getBf() {
     return bf_;
 }
+
+float Settings::getBreathingRate() {
+    return breathing_rate_;
+}
+
+float Settings::getBreathingPhase() {
+    return breathing_phase_;
+}
+
 
 std::shared_ptr<Masker> Settings::getMasker() {
     return masker_;
