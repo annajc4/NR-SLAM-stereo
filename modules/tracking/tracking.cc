@@ -107,6 +107,8 @@ void Tracking::TrackImage(const cv::Mat &im, const absl::flat_hash_map<std::stri
 
         // KeyFrame insertion.
         KeyFrameInsertion(im, masks);
+        SetKLTReference(im, *current_frame_, masks.at("Global"));
+
 
         // Insert frame to the temporal buffer.
         map_->SetLastFrame(current_frame_);
