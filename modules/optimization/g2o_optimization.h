@@ -37,7 +37,7 @@ absl::StatusOr<Eigen::Vector3f> DeformableTriangulation(TemporalBuffer& temporal
                                                         const float scale);
 
 void LocalDeformableBundleAdjustment(std::shared_ptr<Map> map,
-                                     const float scale);
+                                     const float scale, const float bf);
 
 
 #endif //NRSLAM_G2O_OPTIMIZATION_H

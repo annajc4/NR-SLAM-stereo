@@ -902,7 +902,7 @@ private:
 };
 
 void LocalDeformableBundleAdjustment(std::shared_ptr<Map> map,
-                                     const float scale) {
+                                     const float scale, const float bf) {
     // Create optimizer.
     g2o::SparseOptimizer optimizer;
     std::unique_ptr<g2o::BlockSolverX::LinearSolverType> linearSolver =  g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>>();
@@ -981,6 +981,8 @@ void LocalDeformableBundleAdjustment(std::shared_ptr<Map> map,
 
     const int regularizers_per_point = 10;
 
+    const float th_huber_1dof = sqrt(3.84f);
+
     const float th_huber_2dof_squared = 5.99;
     const float th_huber_2dof = sqrt(th_huber_2dof_squared);
 
@@ -1018,6 +1020,7 @@ void LocalDeformableBundleAdjustment(std::shared_ptr<Map> map,
         auto landmark_positions = keyframe->GetLandmarkPositionsWithStatus({TRACKED_WITH_3D});
         auto mappoint_ids = keyframe->GetMapPointsIdsWithStatus({TRACKED_WITH_3D});
         auto keypoints = keyframe->GetKeypointsWithStatus({TRACKED_WITH_3D});
+        auto stereo = keyframe->GetGroundTruthWithStatus({TRACKED_WITH_3D});
 
         for (int idx = 0; idx < landmark_positions.size(); idx++) {
             ID mappoint_id = mappoint_ids[idx];
@@ -1048,6 +1051,26 @@ void LocalDeformableBundleAdjustment(std::shared_ptr<Map> map,
             reprojection_error->calibration_ = keyframe->GetCalibration();
 
             optimizer.addEdge(reprojection_error);
+
+            if (stereo[idx].ok()) {
+                auto right_reprojection_error = new RightReprojectionErrorWithDeformation();
+                right_reprojection_error->setMeasurement(pixel_coordinates.x - bf / stereo[idx]->z());
+                right_reprojection_error->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex *>(
+                        optimizer.vertex(keyframe_id)));
+                right_reprojection_error->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex *>(
+                        optimizer.vertex(landmark_optimization_index)));
+                right_reprojection_error->setInformation(Eigen::Matrix<double, 1, 1>::Identity() * info_reprojection);
+
+                g2o::RobustKernelHuber *right_kernel = new g2o::RobustKernelHuber;
+                right_kernel->setDelta(th_huber_1dof);
+                right_reprojection_error->setRobustKernel(right_kernel);
+
+                right_reprojection_error->fx_ = keyframe->GetCalibration()->GetParameter(0);
+                right_reprojection_error->cx_ = keyframe->GetCalibration()->GetParameter(2);
+                right_reprojection_error->bf_ = bf;
+
+                optimizer.addEdge(right_reprojection_error);
+            }
 
             // Set up position regularizers.
             auto regularization_edges =

@@ -54,7 +54,7 @@ void Mapping::DoMapping() {
 }
 
 void Mapping::KeyFrameMapping() {
-    LocalDeformableBundleAdjustment(map_, map_->GetMapScale());
+    LocalDeformableBundleAdjustment(map_, map_->GetMapScale(), options_.bf);
 }
 
 void Mapping::FrameMapping() {

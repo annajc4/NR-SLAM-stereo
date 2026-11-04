@@ -97,6 +97,7 @@ System::System(const string settings_file_path) {
     // Initialize Mapping.
     Mapping::Options mapping_options;
     mapping_options.rad_per_pixel = settings_->getRadPerPixel();
+    mapping_options.bf = settings_->getBf();
     mapper_ = make_unique<Mapping>(map_, settings_->getCalibration(), mapping_options, time_profiler_.get());
 
     // Initialize frame evaluator.
