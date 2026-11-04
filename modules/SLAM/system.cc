@@ -175,6 +175,13 @@ void System::TrackImageWithStereo(const cv::Mat &im_left, const cv::Mat &im_righ
     #endif
 }
 
+absl::StatusOr<Sophus::SE3f> System::GetCameraPose() {
+    if (tracker_->GetTrackingStatus() != Tracking::TRACKING) {
+        return absl::NotFoundError("Not tracking yet");//.ok() returns false and not written to traj csv
+    }
+    return map_->GetLastFrame().CameraTransformationWorld().inverse();
+}
+
 void System::TrackImageWithDepth(const cv::Mat &im_left, const cv::Mat &im_depth) {
     // Preprocess images.
     cv::Mat im_gray_left, im_gray_right;

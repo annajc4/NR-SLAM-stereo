@@ -5,6 +5,7 @@
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
 #include "absl/log/check.h"
+#include <fstream>
 
 using namespace std;
 
@@ -35,7 +36,8 @@ int main(int argc, char **argv) {
 
     StereoMIS dataset(sequence_path);
     System SLAM(settings_path);
-
+    
+    ofstream trajectory("trajectory.csv");
     for (int idx = starting_frame; idx < end_frame; idx += step) {
         LOG(INFO) << "Processing image " << idx;
         auto im_left = dataset.GetImage(idx);
@@ -48,6 +50,14 @@ int main(int argc, char **argv) {
         CHECK_OK(mask);
 
         SLAM.TrackImageWithStereo(*im_left, *im_right, *mask);
+        auto pose = SLAM.GetCameraPose();
+        if (pose.ok()) {
+            Eigen::Vector3f t = pose->translation();
+            Eigen::Quaternionf q = pose->unit_quaternion();
+            trajectory << idx << "," << t.x() << "," << t.y() << "," << t.z() << ","
+                       << q.x() << "," << q.y() << "," << q.z() << "," << q.w() << endl;
+        }
+
 
     }
 

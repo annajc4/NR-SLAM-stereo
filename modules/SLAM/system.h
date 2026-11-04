@@ -56,7 +56,7 @@ public:
 
     // Tracks the next image using a precomputed depth image.
     void TrackImageWithDepth(const cv::Mat& im_left, const cv::Mat& im_depth);
-
+    absl::StatusOr<Sophus::SE3f> GetCameraPose();
 private:
     // Applies preprocessing to the input image (CLAHE, etc).
     cv::Mat ImageProcessing(const cv::Mat& im, cv::Mat& im_gray);
