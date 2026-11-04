@@ -33,6 +33,8 @@ public:
             const std::vector<cv::KeyPoint>& keypoints,
             const cv::Mat& im_left,
             const cv::Mat& im_right) = 0;
+    
+    float GetBf() const { return baseline_; }
 
 protected:
     std::shared_ptr<CameraModel> calibration_;

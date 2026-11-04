@@ -79,7 +79,7 @@ private:
 
     absl::flat_hash_set<ID> TrackCameraAndDeformation(const cv::Mat& im, const cv::Mat& mask, const cv::Mat& im_right);
 
-    void CreateStereoMapPoints(const cv::Mat& im_left, const cv::Mat& im_right);
+    void CreateStereoMapPoints();
 
     void DataAssociation(const cv::Mat& im, const cv::Mat& mask);
 

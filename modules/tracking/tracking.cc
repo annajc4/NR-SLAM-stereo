@@ -308,6 +308,9 @@ void Tracking::StereoMapInitialization(const cv::Mat& im_left, const cv::Mat& im
 absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, const cv::Mat& mask, const cv::Mat& im_right) {
     // Perform data association.
     DataAssociation(im, mask);
+    if (!im_right.empty()) {
+        current_frame_->MutableGroundTruth() = stereo_matcher_->ComputeStereo3D(current_frame_->Keypoints(), im, im_right);
+    }
 
     // Coarse camera pose estimation.
     CameraPoseEstimation();
@@ -317,16 +320,16 @@ absl::flat_hash_set<ID> Tracking::TrackCameraAndDeformation(const cv::Mat &im, c
 
     // Stereo: give new tracks 3D points immediately 
     if (!im_right.empty()) {
-        CreateStereoMapPoints(im, im_right);
+        CreateStereoMapPoints();
     }
 
     return lost_ids;
 }
 
 
-void Tracking::CreateStereoMapPoints(const cv::Mat& im_left, const cv::Mat& im_right) {
+void Tracking::CreateStereoMapPoints() {
     auto& keypoints = current_frame_->Keypoints();
-    auto stereo = stereo_matcher_->ComputeStereo3D(keypoints, im_left, im_right);
+    auto stereo = current_frame_->GroundTruth();  
     const auto camera_to_world = current_frame_->CameraTransformationWorld().inverse();
 
     for (const auto& [idx, landmark_id] : current_frame_->IndexToMapPointId()) {
@@ -425,7 +428,7 @@ absl::flat_hash_set<ID> Tracking::CameraPoseAndDeformationEstimation() {
     // Do optimization.
     auto lost_mappoint_ids = CameraPoseAndDeformationOptimization(*current_frame_,
                                          map_,previous_camera_transform_world_,
-                                         map_->GetMapScale());
+                                         map_->GetMapScale(),stereo_matcher_->GetBf());
 
     // Update motion model.
     motion_model_ = current_frame_->CameraTransformationWorld() *

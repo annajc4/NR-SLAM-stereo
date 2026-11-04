@@ -30,6 +30,7 @@
 #include "optimization/spatial_regularizer_with_deformation.h"
 #include "optimization/spatial_regularizer_with_observation.h"
 #include "optimization/spatial_regularizer_fixed.h"
+#include "optimization/right_reprojection_error_with_deformation.h"
 #include "utilities/geometry_toolbox.h"
 
 #include "absl/container/flat_hash_map.h"
@@ -148,7 +149,7 @@ void CameraPoseOptimization(Frame& frame, const Sophus::SE3f& previous_camera_tr
 absl::flat_hash_set<ID> CameraPoseAndDeformationOptimization(Frame& current_frame,
                                                      std::shared_ptr<Map> map,
                                                      const Sophus::SE3f& previous_camera_transform_world,
-                                                     const float scale) {
+                                                     const float scale, const float bf) {
     // Create optimizer.
     g2o::SparseOptimizer optimizer;
     std::unique_ptr<g2o::BlockSolverX::LinearSolverType> linearSolver =  g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>>();
@@ -174,6 +175,8 @@ absl::flat_hash_set<ID> CameraPoseAndDeformationOptimization(Frame& current_fram
     vector<cv::KeyPoint> keypoints = current_frame.GetKeypointsWithStatus({TRACKED_WITH_3D});
     vector<Eigen::Vector3f> landmark_positions = current_frame.GetLandmarkPositionsWithStatus({TRACKED_WITH_3D});
     vector<ID> mappoints_ids = current_frame.GetMapPointsIdsWithStatus({TRACKED_WITH_3D});
+    vector<absl::StatusOr<Eigen::Vector3f>> stereo = current_frame.GetGroundTruthWithStatus({TRACKED_WITH_3D});
+
     absl::flat_hash_map<ID, int> mappoint_id_to_index;
     const int points_in_optimization = keypoints.size();
 
@@ -193,6 +196,8 @@ absl::flat_hash_set<ID> CameraPoseAndDeformationOptimization(Frame& current_fram
 
     // Set error terms.
     const int regularizers_per_point = 10;
+    
+    const float th_huber_1dof = sqrt(3.84f);
 
     const float th_huber_2dof_squared = 5.99;
     const float th_huber_2dof = sqrt(th_huber_2dof_squared);
@@ -246,6 +251,25 @@ absl::flat_hash_set<ID> CameraPoseAndDeformationOptimization(Frame& current_fram
         reprojection_errors[idx] = reprojection_error;
 
         n_reprojection_edges++;
+        //reprojection in additional image (stereo error)
+        if (stereo[idx].ok()) {
+            RightReprojectionErrorWithDeformation* right_reprojection_error = new RightReprojectionErrorWithDeformation();
+            right_reprojection_error->setMeasurement(pixel_coordinates.x - bf / stereo[idx]->z());   // measured right-image column
+            right_reprojection_error->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+            right_reprojection_error->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(idx+1)));
+            right_reprojection_error->setInformation(Eigen::Matrix<double, 1, 1>::Identity() * info_reprojection);
+
+            g2o::RobustKernelHuber* right_kernel = new g2o::RobustKernelHuber;
+            right_kernel->setDelta(th_huber_1dof);
+            right_reprojection_error->setRobustKernel(right_kernel);
+
+            right_reprojection_error->landmark_world_ = landmark_positions[idx].cast<double>();
+            right_reprojection_error->fx_ = current_frame.GetCalibration()->GetParameter(0);
+            right_reprojection_error->cx_ = current_frame.GetCalibration()->GetParameter(2);
+            right_reprojection_error->bf_ = bf;
+
+            optimizer.addEdge(right_reprojection_error);
+        }
 
         // Set spatial regularizers.
         const ID mappoint_id = mappoints_ids[idx];

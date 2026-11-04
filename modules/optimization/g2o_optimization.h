@@ -29,7 +29,7 @@ void CameraPoseOptimization(Frame& frame, const Sophus::SE3f& previous_camera_tr
 absl::flat_hash_set<ID> CameraPoseAndDeformationOptimization(Frame& current_frame,
                                                      std::shared_ptr<Map> map,
                                                      const Sophus::SE3f& previous_camera_transform_world,
-                                                     const float scale);
+                                                     const float scale, const float bf);
 
 absl::StatusOr<Eigen::Vector3f> DeformableTriangulation(TemporalBuffer& temporal_buffer,
                                                         int candidate_id,
